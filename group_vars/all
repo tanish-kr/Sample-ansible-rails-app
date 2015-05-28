@@ -1,0 +1,18 @@
+# rbenv variable
+work_dir: /usr/local/share
+repos_dir: "{{ work_dir }}/rbenv"
+branch: master
+
+# postgresql user
+dbuser: "sample-ansible"
+dbpass: "abcdefg"
+
+# ruby version
+ruby_version: 2.2.1
+
+# app root
+rails_root: /usr/share/www
+rails_project_name: sample-rails-app
+
+# unicorn
+unicorn_sock: /tmp/unicorn.sock

@@ -1,0 +1,15 @@
+---
+- name: nginx rpm package attach
+  yum: name=http://nginx.org/packages/centos/6/noarch/RPMS/nginx-release-centos-6-0.el6.ngx.noarch.rpm state=present
+
+- name: install nginx
+  yum: name=nginx state=latest
+
+- name: default nginx conf backup
+  shell: mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak
+
+- name: setting unicorn conf
+  template: src=unicorn-app.nginx.j2 dest=/etc/nginx/conf.d/unicorn-app.conf owner=root group=root mode=0644
+
+- name: start nginx
+  service: name=nginx state=started enabled=yes
