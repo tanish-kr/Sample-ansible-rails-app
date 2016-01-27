@@ -1,0 +1,65 @@
+---
+- name: install git
+  yum: name=git state=installed
+
+- name: install rbenv
+  git: repo=https://github.com/sstephenson/rbenv.git dest={{ repos_dir }} version={{ branch }} accept_hostkey=yes
+#  sudo: no
+
+# - name: setup rbenv
+#   copy: src=.bashrc dest=~/.bashrc owner=vagrant group=vagrant mode=0644
+#   sudo: no
+
+- name: setup rbenv
+  copy: src=rbenv.sh dest=/etc/profile.d
+
+- name: install ruby-build
+  git: repo=https://github.com/sstephenson/ruby-build.git dest={{ repos_dir }}/plugins/ruby-build version={{ branch }} accept_hostkey=yes
+#  sudo: no
+
+- name: install ruby dependencies
+  yum: name={{ item }} state=latest
+  with_items:
+    - gcc
+    - gcc-c++
+    - openssl-devel
+    - libyaml-devel
+    - readline-devel
+    - zlib-devel
+    - libffi-devel
+    - libxml2-devel
+    - libxslt-devel
+
+- name: install ruby
+  shell: /bin/bash -lc "rbenv install {{ ruby_version }} && rbenv rehash && rbenv global {{ ruby_version }}"
+#  sudo: no
+
+- name: checkout rails project
+  git: repo=https://github.com/tatsu07/sample-rails-app.git dest={{ rails_root }} version={{ branch }} accept_hostkey=yes
+
+- name: gem bundler install
+  shell: /bin/bash -lc "gem install bundler"
+
+- name: bundle install
+  shell: /bin/bash -lc "bundle config build.nokogiri --use-system-libraries && bundle install --without test development"
+  args:
+    chdir: "{{ rails_root }}"
+ 
+- name: rake db:migrate
+  shell: /bin/bash -lc "
+    export SAMPLE_RAILS_APP_DATABASE_USERNAME={{ dbuser }} && 
+    export SAMPLE_RAILS_APP_DATABASE_PASSWORD={{ dbpass }} && 
+    bundle exec rake db:create RAILS_ENV=production &&
+    bundle exec rake db:migrate RAILS_ENV=production &&
+    bundle exec rake assets:precompile"
+  args:
+    chdir: "{{ rails_root }}"
+
+- name: unicorn start
+  shell: /bin/bash -lc "
+    export SAMPLE_RAILS_APP_DATABASE_USERNAME={{ dbuser }} && 
+    export SAMPLE_RAILS_APP_DATABASE_PASSWORD={{ dbpass }} && 
+    export SECRET_KEY_BASE=`{{ repos_dir }}/shims/bundle exec rake secret` && 
+    bundle exec unicorn_rails -c config/unicorn.conf -E production -D"
+  args:
+    chdir: "{{ rails_root }}"
